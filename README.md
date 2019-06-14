@@ -7,7 +7,14 @@ pytorch [Constructing Fast Network through Deconstruction of Convolution](https:
 * Pytorch 1.1.0
 * cuda 9.0
 
+## Build
+```console
+???@???:~$ python ./DepthwiseAffineGrid/setup.py install
+???@???:~$ python ./DepthwiseGridSample/setup.py install
+```
+
 ## To DO
+- [v] use C++ extension
 - [ ] Write Backward
 - [ ] improve performance using CUDA
 - [ ] Comparison with paper
