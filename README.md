@@ -7,6 +7,9 @@ pytorch [Constructing Fast Network through Deconstruction of Convolution](https:
 * Pytorch 1.1.0
 * cuda 9.0
 
+> [!NOTE]
+> It does not support CUDA now.
+
 ## Build
 ```console
 ???@???:~$ python ./DepthwiseAffineGrid/setup.py install
