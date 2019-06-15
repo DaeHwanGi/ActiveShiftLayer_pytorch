@@ -2,12 +2,12 @@
 
 pytorch [Constructing Fast Network through Deconstruction of Convolution](https://papers.nips.cc/paper/7835-constructing-fast-network-through-deconstruction-of-convolution.pdf) implementation
 
+> **It does not support CUDA now.**
+
 ## Prerequisite
 
 * Pytorch 1.1.0
 * cuda 9.0
-
-> **It does not support CUDA now.**
 
 ## Build
 ```console
