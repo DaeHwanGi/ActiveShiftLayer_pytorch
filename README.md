@@ -6,6 +6,7 @@ pytorch [Constructing Fast Network through Deconstruction of Convolution](https:
 
 ## Prerequisite
 
+* Windows10
 * Pytorch 1.1.0
 * cuda 9.0
 
