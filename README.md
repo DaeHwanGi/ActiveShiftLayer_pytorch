@@ -17,6 +17,7 @@ pytorch [Constructing Fast Network through Deconstruction of Convolution](https:
 
 ## To DO
 - [x] use C++ extension
-- [ ] Write Backward
+- [x] Write Backward
+- [ ] Support CUDA tensor
 - [ ] Comparison with paper
-- [ ] improve performance using CUDA
+- [ ] Improve performance using CUDA
