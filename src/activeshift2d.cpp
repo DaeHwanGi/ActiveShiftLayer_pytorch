@@ -104,6 +104,7 @@ std::tuple<torch::Tensor, torch::Tensor> activeshift2d_backward(
 	const torch::Tensor& theta) {
 	auto grad_input = at::zeros_like(input);
 	auto grad_theta = at::zeros_like(theta);
+	//auto grad_temp = at::zeros({ C, inp_H, inp_W, 2 }, theta.options());
 	int64_t N = input.size(0);
 	int64_t C = input.size(1);
 	int64_t inp_H = input.size(2);
@@ -129,29 +130,32 @@ std::tuple<torch::Tensor, torch::Tensor> activeshift2d_backward(
 
 	int64_t gTheta_sC = grad_theta.stride(0);
 	int64_t gTheta_sCoor = grad_theta.stride(1);
+
+	//int64_t gTemp_sC = grad_temp.stride(0);
+	//int64_t gTemp_sH = grad_temp.stride(1);
+	//int64_t gTemp_sW = grad_temp.stride(2);
+	//int64_t gTemp_sCoor = grad_temp.stride(3);
+
 	scalar_t *inp_ptr = input.data<scalar_t>();
 	scalar_t *theta_ptr = theta.data<scalar_t>();
 	scalar_t *gOut_ptr = grad_output.data<scalar_t>();
 	scalar_t *gInp_ptr = grad_input.data<scalar_t>();
 	scalar_t *gTheta_ptr = grad_theta.data<scalar_t>();
+	//scalar_t *gTemp_ptr = grad_temp.data<scalar_t>();
 	// loop over each output pixel
 	at::parallel_for(0, N, 0, [&](int64_t start, int64_t end) {
 		for (int64_t n = start; n < end; ++n) {
-			scalar_t *grid_ptr_N = grid_ptr + n * grid_sN;
 			scalar_t *inp_ptr_N = inp_ptr + n * inp_sN;
-			scalar_t *gGrid_ptr_N = gGrid_ptr + n * gGrid_sN;
-			for (int64_t c = 0; c < out_C; ++c) {
+			for (int64_t c = 0; c < C; ++c) {
 				scalar_t *theta_ptr_C = theta_ptr + c * theta_sC;
 				scalar_t *gTheta_ptc_C = gTheta_ptr + c * gTheta_sC;
 				scalar_t alpha = *theta_ptr_C;
 				scalar_t beta = theta_ptr_C[theta_sCoor];
 				int64_t floor_alpha = static_cast<int64_t>(std::floor(alpha));
 				int64_t floor_beta = static_cast<int64_t>(std::floor(beta));
-				for (int64_t h = 0; h < out_H; ++h) {
-					for (int64_t w = 0; w < out_W; ++w) {
-						// get the corresponding input x, y, z co-ordinates from grid
-						scalar_t *grid_ptr_NCHW = grid_ptr_N + c * grid_sC + h * grid_sH + w * grid_sW;
-						scalar_t *gGrid_ptr_NDHW = gGrid_ptr_N + c * gGrid_sC + h * gGrid_sH + w * gGrid_sW;
+				for (int64_t h = 0; h < inp_H; ++h) {
+					for (int64_t w = 0; w < inp_W; ++w) {
+						//scalar_t *gTemp_ptr_CHW		= gTemp_ptr + c * gTemp_sC + h * gTemp_sH + w * gTemp_sW;
 
 						// get corner pixel values from (x, y)
 						int64_t ix_nw = w + floor_beta;
@@ -188,37 +192,37 @@ std::tuple<torch::Tensor, torch::Tensor> activeshift2d_backward(
 						// calculate grad_grid
 						if (within_bounds_2d(iy_nw, ix_nw, inp_H, inp_W)) {
 							scalar_t nw_val = inp_ptr_NC[iy_nw * inp_sH + ix_nw * inp_sW];
-							gix -= nw_val * (1 - iy + iy_nw) * gOut;
-							giy -= nw_val * (1 - ix + ix_nw) * gOut;
+							gix -= nw_val * (1 - beta + floor_beta) * gOut;
+							giy -= nw_val * (1 - alpha + floor_alpha) * gOut;
 						}
 						if (within_bounds_2d(iy_ne, ix_ne, inp_H, inp_W)) {
 							scalar_t ne_val = inp_ptr_NC[iy_ne * inp_sH + ix_ne * inp_sW];
-							gix += ne_val * (1 - iy + iy_nw) * gOut;
-							giy -= ne_val * (ix - ix_nw) * gOut;
+							gix += ne_val * (1 - beta + floor_beta) * gOut;
+							giy -= ne_val * (alpha - floor_alpha) * gOut;
 						}
 						if (within_bounds_2d(iy_sw, ix_sw, inp_H, inp_W)) {
 							scalar_t sw_val = inp_ptr_NC[iy_sw * inp_sH + ix_sw * inp_sW];
-							gix -= sw_val * (iy - iy_nw) * gOut;
-							giy += sw_val * (1 - ix + ix_nw) * gOut;
+							gix -= sw_val * (beta - floor_beta) * gOut;
+							giy += sw_val * (1 - alpha + floor_alpha) * gOut;
 						}
 						if (within_bounds_2d(iy_se, ix_se, inp_H, inp_W)) {
 							scalar_t se_val = inp_ptr_NC[iy_se * inp_sH + ix_se * inp_sW];
-							gix += se_val * (iy - iy_nw) * gOut;
-							giy += se_val * (ix - ix_nw) * gOut;
+							gix += se_val * (beta - floor_beta) * gOut;
+							giy += se_val * (alpha - floor_alpha) * gOut;
 						}
 
 						// assuming grad_grid is contiguous
+						//*gTemp_ptr_CHW += giy; //alpha
+						//gTemp_ptr_CHW[gTemp_sCoor] += gix;
+
 						*gTheta_ptc_C += giy; //alpha
 						gTheta_ptc_C[gTheta_sCoor] += gix;
 					}
 				}
-
-				*gTheta_ptc_C = *gTheta_ptc_C / N;
-				gTheta_ptc_C[gTheta_sCoor] = gTheta_ptc_C[gTheta_sCoor] / N;
 			}
 		}
 	});
-	return std::make_tuple(grad_input, grad_grid);
+	return std::make_tuple(grad_input, grad_theta);
 }
 
 torch::Tensor activeshift_forward(const torch::Tensor& input, const torch::Tensor& theta) {
