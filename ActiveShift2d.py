@@ -29,13 +29,11 @@ class ActiveShift2d(nn.Module):
     def __init__(self, in_channel, out_channel, bias=False):
         super(ActiveShift2d, self).__init__()
         self.theta = nn.Parameter(torch.FloatTensor(in_channel, 2).unsqueeze_(-1))
-        self.theta.data.uniform_(-0.1, 0.1) # have to change
+        self.theta.data.uniform_(-1-(2/27), -1+(2/27)) # have to change
         self.base_theta = torch.FloatTensor([[1, 0], [0, 1]]).repeat(in_channel, 1, 1)
-        self.pointwise = nn.Conv2d(in_channel, out_channel, kernel_size=1, bias=bias)
 
     def forward(self, x):
         theta = torch.cat([self.base_theta.type_as(self.theta), self.theta], dim=-1)
         grid = DepthwiseAffineGridFunction.apply(theta, x.size())
         shifted = DepthwiseGridSamplerFunction.apply(x.contiguous(), grid.contiguous())
-        out = self.pointwise(shifted)
-        return out
+        return shifted
